@@ -29,12 +29,20 @@ type ChildrenChoice = 'default' | 'yes' | 'no';
 
 export default class FileTreeColorsPlugin extends Plugin {
   settings: FileTreeColorsSettings = normalizeSettings(null);
-  private sheet: CSSStyleSheet | null = null;
+  /**
+   * One stylesheet per window. A constructed sheet can only be adopted by the
+   * document that made it, and the window that is active at load time may be
+   * the separate Settings window (where the plugin gets enabled), so the main
+   * window and every popout get their own.
+   */
+  private sheets = new Map<Document, CSSStyleSheet>();
 
   async onload() {
     this.settings = normalizeSettings(await this.loadData());
-    this.sheet = new CSSStyleSheet();
-    activeDocument.adoptedStyleSheets = [...activeDocument.adoptedStyleSheets, this.sheet];
+    this.adopt(this.app.workspace.containerEl.ownerDocument);
+    this.app.workspace.iterateAllLeaves((leaf) => this.adopt(leaf.view.containerEl.ownerDocument));
+    this.registerEvent(this.app.workspace.on('window-open', (win) => this.adopt(win.doc)));
+    this.registerEvent(this.app.workspace.on('window-close', (win) => this.release(win.doc)));
     this.refresh();
 
     this.registerEvent(
@@ -99,14 +107,29 @@ export default class FileTreeColorsPlugin extends Plugin {
   }
 
   onunload() {
-    const sheet = this.sheet;
-    if (sheet) activeDocument.adoptedStyleSheets = activeDocument.adoptedStyleSheets.filter((s) => s !== sheet);
-    this.sheet = null;
+    this.saveSoon.run();
+    for (const doc of [...this.sheets.keys()]) this.release(doc);
   }
 
-  /** Regenerates the single stylesheet from the settings. */
+  private adopt(doc: Document) {
+    if (this.sheets.has(doc) || !doc.defaultView) return;
+    const sheet = new doc.defaultView.CSSStyleSheet();
+    sheet.replaceSync(buildCss(this.settings));
+    doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
+    this.sheets.set(doc, sheet);
+  }
+
+  private release(doc: Document) {
+    const sheet = this.sheets.get(doc);
+    if (!sheet) return;
+    doc.adoptedStyleSheets = doc.adoptedStyleSheets.filter((s) => s !== sheet);
+    this.sheets.delete(doc);
+  }
+
+  /** Regenerates the stylesheet of every window from the settings. */
   refresh() {
-    if (this.sheet) this.sheet.replaceSync(buildCss(this.settings));
+    const css = buildCss(this.settings);
+    for (const sheet of this.sheets.values()) sheet.replaceSync(css);
   }
 
   private saveSoon = debounce(() => void this.saveData(this.settings), 300, true);
