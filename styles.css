@@ -1,0 +1,34 @@
+.ftc-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: var(--size-4-2);
+  margin: var(--size-4-3) 0;
+}
+
+.ftc-swatch {
+  width: 100%;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-m);
+  background: var(--ftc-swatch);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.ftc-swatch:hover,
+.ftc-swatch:focus-visible {
+  border-color: var(--text-normal);
+}
+
+.ftc-swatch.is-current {
+  border-color: var(--text-normal);
+  outline: 2px solid var(--background-primary);
+  outline-offset: -4px;
+}
+
+.ftc-note {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
