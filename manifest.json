@@ -1,0 +1,10 @@
+{
+  "id": "file-tree-colors",
+  "name": "File Tree Colors",
+  "version": "0.1.0",
+  "minAppVersion": "1.0.0",
+  "description": "Color files and folders in the file explorer, with a palette, cascading to children, and import from File Color.",
+  "author": "Siulved54",
+  "authorUrl": "https://github.com/perezamadorluisenrique-gif",
+  "isDesktopOnly": false
+}
