@@ -107,7 +107,8 @@ export default class FileTreeColorsPlugin extends Plugin {
   }
 
   onunload() {
-    this.saveSoon.run();
+    // A change in the last 300 ms would otherwise be lost (Debouncer.run needs 1.4.4).
+    if (this.unsaved) void this.saveData(this.settings);
     for (const doc of [...this.sheets.keys()]) this.release(doc);
   }
 
@@ -132,11 +133,20 @@ export default class FileTreeColorsPlugin extends Plugin {
     for (const sheet of this.sheets.values()) sheet.replaceSync(css);
   }
 
-  private saveSoon = debounce(() => void this.saveData(this.settings), 300, true);
+  private unsaved = false;
+  private saveSoon = debounce(
+    () => {
+      this.unsaved = false;
+      void this.saveData(this.settings);
+    },
+    300,
+    true,
+  );
 
   /** Applies and stores a change. */
   commit() {
     this.refresh();
+    this.unsaved = true;
     this.saveSoon();
   }
 
